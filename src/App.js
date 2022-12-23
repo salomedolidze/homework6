@@ -1,318 +1,91 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
-import axios, { Axios } from 'axios'
-import loadinglogo from "./loading.png"
+import React, { useEffect, useState } from 'react';
 import './App.css';
-
-
-const validate = (values) => {
-  const errors = {}
-  if (values.firstName && values.firstName.length < 4) {
-    errors.name = "username should have at least 4 characters"
-
-  }
-  if (values.lastName && values.lastName.length < 4) {
-    errors.firstName = "surname should have at least 4 characters"
-  }
-  if (values.email && !values.email.includes("@gmail.com")) {
-    errors.email = "email should include @gmail.com"
-  }
-  if (values.age && values.age < 18) {
-    errors.age = "min 18 year"
-  }
-  if (!values.sex) {
-    errors.gender = "gender is important"
-  }
-
-  return errors
-}
-
-function UserList({ data, setUserList, onEdituser, onDelteUser, showUser, showAllUsers, setShowAllUser, userList }) {
-
-  return (
-    <>
-      <ul>
-        {data.map((elem, index) => {
-          return (<>
-
-            <li key={elem._id}> {elem.firstName}
-              {" "}{elem.lastName}  {" "}
-              {elem.age} years old   {" "}
-              {elem.sex}  {" "} id: {elem._id}
-              <button onClick={() => onEdituser(elem)}>EDIT</button>
-              <button onClick={() => onDelteUser(elem._id)}>DELETE</button>
-            </li>
-
-          </>
-
-
-          )
-
-        })}
-        <button onClick={() => {
-          console.log("shemodis")
-          console.log(showUser)
-          return (
-            setShowAllUser(!showUser),
-
-            showAllUsers(userList)
-
-
-
-
-
-          )
-        }}>{showUser == true ? "show " : " hide "}all users</button>
-
-      </ul>
-    </>
-  )
-}
-function Errortext({ formErrors }) {
-  return (
-    <div>
-      {formErrors.firstName && <p style={{ color: "red" }}>{formErrors.firstName}</p>}
-      {formErrors.lastName && <p style={{ color: "red" }}>{formErrors.lastName} </p>}
-      {formErrors.email && <p style={{ color: "red" }}>{formErrors.email}</p>}
-      {formErrors.age && <p style={{ color: "red" }}>{formErrors.age}</p>}
-      {formErrors.sex && <p style={{ color: "red" }}>{formErrors.sex}</p>}
-    </div>
-
-  )
-}
-function Inputdiv({ saveUser, formValue, formErrors, onFormChange, isFormValid, onChange }) {
-  return (<form onSubmit={saveUser}>
-    <label>userName</label> <br></br>
-    <input type="text" name="firstName" placeholder='userName' value={formValue.firstName} onChange={onFormChange} className={`${formErrors.firstName ? "red" : "black"}`} /><br></br>
-
-    <label>surName</label> <br></br>
-    <input type="text" name="lastName" placeholder='surName' value={formValue.lastName} onChange={onFormChange} className={formErrors.lastName ? "red" : "black"} /><br></br>
-
-    <label>mail</label> <br></br>
-    <input type="text" name="email" placeholder='email' value={formValue.email} onChange={onFormChange} className={formErrors.email ? "red" : "black"} /><br></br>
-
-    <label>age</label> <br></br>
-    <input type="number" min="0" name="age" placeholder='age' value={formValue.age} onChange={onFormChange} className={formErrors.age ? "red" : "black"} /><br></br>
-
-    {/* <label>gender</label> */}
-    <select onChange={onFormChange} name="sex" value={formValue.gender} className={formErrors.sex ? "red" : "black"} >
-      <option >choose gender</option>
-      <option value="female">female</option>
-      <option value="male">male</option>
-    </select> <br></br>
-
-    <button disabled={!isFormValid}>submit</button>
-
-
-  </form>
-  )
-}
+import axios from 'axios';
 
 const instance = axios.create({
-  baseURL: "http://localhost:3001",
-
-})
-
-
-
+  baseURL: "http://localhost:3001"
+}
+)
+const defaultVelues = {
+  firstName: "",
+  lastName: "",
+  age: "",
+  email: "",
+  sex: "femail"
+}
 function App() {
-
-
-  const [formValue, setFormValue] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    age: "",
-    sex: "",
-    id: ""
-
-
-  })
-  const [formErrors, setFormErrors] = useState({})
   const [userList, setUserList] = useState([])
-  const [isFormValid, setIsFormValid] = useState(false)
-  const [isUserUpdate, setIsUserUpdate] = useState(false)
-  const [showUser, setShowAllUser] = useState(true)
-  const [loading, setLoading] = useState(false)
-
-  const [data, setData] = useState([])
-
-  const onFormChange = (e) => {
-    setFormValue((prev) => ({
-      ...prev, [e.target.name]: e.target.value
-
-    }))
-
-  }
-  const saveUser = (e) => {
-    e.preventDefault()
-    if (isUserUpdate) {
-      //   setData(
-      //     (prevUsersList) => {
-      //     const updateUserList=prevUsersList.reduce((acc,curr)=>{
-      //       if(curr.id===formValue.id){
-      //         axios.put(`http://localhost:3001/users/${formValue.id}`,formValue)
-
-      //         return [...acc,formValue]
-      //       }else{
-
-      //         return[...acc,curr]
-      //       }
-      //     },[])
-
-      // return updateUserList
-      //   }
-      //   )
-
-    } else {
-
-      instance
-        .post("/users", formValue)
-    }
-
-    setFormValue(
-
-      {
-        firstName: "",
-        lastName: "",
-        email: "",
-        age: "",
-        sex: ""
-
-      }
-
-    )
-
-    setIsFormValid(false)
+  const [isUserUpdating, setIsUserUpdating] = useState(false)
+  const [values, setValues] = useState(defaultVelues)
 
 
+  const onInfutChange = (e) => {
+    const { value, name } = e.target
+    setValues({ ...values, [name]: value })
   }
 
+  const getUser = async () => {
+    const { data } = await instance.get("/users")
+    setUserList(data.data)
+    console.log("data", data)
+  }
   useEffect(() => {
-
-    const timer = setTimeout(() => {
-      const validationResult = validate(formValue)
-      setFormErrors(validationResult);
-      if (formValue.firstName &&
-        !validationResult.firstName &&
-        formValue.lastName &&
-        !validationResult.lastName &&
-        !validationResult.email &&
-        formValue.age &&
-        !validationResult.age
-
-      ) {
-        setIsFormValid(true)
-      } else {
-        setIsFormValid(false)
-
-      }
-    }, 500);
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [formValue])
-
-  const onEdituser = (userinfo) => {
-    setFormValue(userinfo)
-    setIsUserUpdate(true)
-  }
-  const showAllUsers = ({ data }) => {
-    if (showUser == true) {
-      instance.get("/users").then(({ data }) => {
-        console.log(data.data)
-
-
-
-        return setData(data.data)
-      }).catch((error) => console.log("error", error))
-    } else {
-      setData([])
-    }
-
-
-  }
-  const deleteUser = (ids) => {
-    console.log(ids)
-    axios.delete(`http://localhost:3001/users/${ids}`);
-  };
-
-
-
-
-  useEffect(() => {
-    const userData = async () => {
-      setLoading("loading");
-      try {
-        const { data } = await axios.get("http://localhost:3001/users");
-        setData(data.data);
-      } catch (error) {
-        setFormErrors("ERROR");
-      } finally {
-        setLoading(false);
-      }
-    };
-    userData();
-  }, []);
-  useEffect(() => {
-    (async () => {
-      setLoading(true)
-      try {
-        const { data } = await instance.get("/users")
-        console.log("dataa", data)
-        setData(data.data)
-
-
-
-      } catch (error) {
-        setFormErrors(error)
-        console.log("errprr", error)
-      } finally {
-        setLoading(false)
-      }
-    })()
+    getUser()
   }, [])
 
+  const onDeleteUser = async (id) => {
+    await instance.delete(`/users/${id}`)
+    getUser()
+  }
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    if (isUserUpdating) {
+      await instance.put(`/users/${values.id}`,values)
 
+    } else {
+      await instance.post("/users", values)
+    }
+    await getUser()
+    setValues(defaultVelues)
+    setIsUserUpdating(false)
+
+  }
   return (
-    <>
-      {/* {loading && <img src={loadinglogo} className="loading"></img>
-}
-        {formErrors && <h1>{formErrors}</h1>} */}
-      <div className='input_div'>
+    <div>
+      <form onSubmit={onSubmit}>
+        <input name="firstName" value={values.firstName} placeholder="firstName" onChange={onInfutChange} /> <br />
+        <input name="lastName" value={values.lastName} placeholder="lastName" onChange={onInfutChange} /><br />
+        <input type="number" name="age" value={values.age} placeholder="age" onChange={onInfutChange} /><br />
+        <input name="email" value={values.email} placeholder="email" onChange={onInfutChange} /><br />
+        <button>Save</button>
 
-        <Inputdiv
-          saveUser={saveUser}
-          formValue={formValue}
-          formErrors={formErrors}
-          isFormValid={isFormValid}
-          onFormChange={onFormChange}
-        />
+      </form>
+      {userList.map((user) => (
+        <React.Fragment key={user._id}>
+          <h1>{user.firstName}</h1>
+          <h1>{user.lastName}</h1>
+          <h1>{user.age}</h1>
+          <button onClick={() => {
+            setIsUserUpdating(true)
+            setValues({
+              firstName: user.firstName,
+              lastName:user.lastName,
+              age: user.age,
+              email: user.email,
+              sex: user.sex,
+              id:user._id
+            })
+          }}>EDIT</button>
+          <button onClick={() => { onDeleteUser(user._id) }}>DELETE</button>
 
-        <Errortext
-          formErrors={formErrors} >
-
-        </Errortext>
-
-        <UserList
-          data={data}
-          setUserList={setUserList}
-          onEdituser={onEdituser}
-          onDelteUser={deleteUser}
-          showUser={showUser}
-          showAllUsers={showAllUsers}
-          setShowAllUser={setShowAllUser}
-          userList={userList}
-
-        />
-
-
+          <hr />
+        </React.Fragment>
+      ))}
 
 
-      </div>
-    </>
-
+    </div>
   )
+
 }
 
 export default App;
